@@ -65,7 +65,8 @@ def _recovery(rf, path, exception):
 def test_lost_oauth_state_on_callback_returns_retry_message(rf):
     from social_core.exceptions import AuthStateMissing
 
-    response = _recovery(rf, "/complete/globus/", AuthStateMissing(None, "state"))
+    missing = AuthStateMissing(None, "state")  # type: ignore[arg-type]
+    response = _recovery(rf, "/complete/globus/", missing)
     assert response.status_code == 400
     assert b"/login/globus/" in response.content
 
