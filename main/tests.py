@@ -14,3 +14,10 @@ def test_healthz_ok(client):
     response = client.get(reverse("healthz"))
     assert response.status_code == 200
     assert response.json() == {"ok": True}
+
+
+@pytest.mark.django_db
+def test_healthz_accepts_load_balancer_ip_host(client, settings):
+    settings.ALLOWED_HOSTS = ["app.example.org"]
+    assert client.get("/healthz/", HTTP_HOST="10.0.3.17").status_code == 200
+    assert client.get("/", HTTP_HOST="10.0.3.17").status_code == 400

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Local .venv setup. Creates .venv, installs deps, runs migrations, starts runserver.
+# Local setup with uv: installs the locked dependencies into .venv, runs migrations, starts runserver.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -11,13 +11,9 @@ if [[ ! -f .env ]]; then
   exit 1
 fi
 
-if [[ ! -d .venv ]]; then
-  python3 -m venv .venv
-fi
-.venv/bin/pip install --upgrade pip
-.venv/bin/pip install -r requirements-dev.txt
-
-.venv/bin/python manage.py migrate
+command -v uv >/dev/null 2>&1 || { echo "Install uv first: https://docs.astral.sh/uv/" >&2; exit 2; }
+uv sync --all-groups
+uv run python manage.py migrate
 echo
 echo "Starting dev server at http://localhost:8000/"
-exec .venv/bin/python manage.py runserver
+exec uv run python manage.py runserver

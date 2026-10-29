@@ -35,6 +35,12 @@ enforcement:
   - scripts/deploy.sh
   - scripts/one_time_setup.sh
   - requirements.txt
+  - pyproject.toml
+  - uv.lock
+  - Makefile
+  - scripts/create_project.py
+  - scripts/lib/**
+  - .dockerignore
   deny_read_paths:
   - .env
   - .env.[!e]*
@@ -58,7 +64,7 @@ enforcement:
   ask_commands:
   - \bgit\s+push\b
   - \bpip3?\s+install\b
-  - \buv\s+(add|pip\s+install)\b
+  - \buv\s+(add|remove|pip\s+install)\b
   - \bconda\s+install\b
   - \bmamba\s+install\b
   - \bnpm\s+(i|install)\b
@@ -66,6 +72,7 @@ enforcement:
   - \bgit\s+rebase\b
   - \brm\s+-[a-zA-Z]*r
   - scripts/(deploy|one_time_setup)\.sh
+  - \bmake\s+deploy-
   - \beb\s+(deploy|setenv|create|scale|swap)
   - \baws\s+
   - \bdocker\s+push\b
