@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1>Chat</h1>
+  <div id="messages" class="chat-log"></div>
+  <form id="chat-form">
+    {% csrf_token %}
+    <textarea id="prompt" rows="3" placeholder="Ask something..." required></textarea>
+    <button type="submit">Send</button>
+  </form>
+
+  <script>
+    const form = document.getElementById("chat-form");
+    const promptEl = document.getElementById("prompt");
+    const messagesEl = document.getElementById("messages");
+    const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]").value;
+    const history = [];
+
+    function append(role, text) {
+      const div = document.createElement("div");
+      div.className = "chat-msg chat-" + role;
+      div.textContent = (role === "user" ? "You: " : "Assistant: ") + text;
+      messagesEl.appendChild(div);
+      return div;
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const userMessage = promptEl.value.trim();
+      if (!userMessage) return;
+      append("user", userMessage);
+      promptEl.value = "";
+      history.push({ role: "user", content: userMessage });
+      const assistantEl = append("assistant", "");
+
+      const resp = await fetch("{% url 'chat:message' %}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
+        body: JSON.stringify({ message: userMessage, history: history.slice(0, -1) }),
+      });
+      if (!resp.body) { assistantEl.textContent = "Assistant: (no response)"; return; }
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "", assistantText = "";
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let idx;
+        while ((idx = buffer.indexOf("\n\n")) !== -1) {
+          const frame = buffer.slice(0, idx).trim();
+          buffer = buffer.slice(idx + 2);
+          if (!frame.startsWith("data: ")) continue;
+          let event;
+          try { event = JSON.parse(frame.slice(6)); } catch { continue; }
+          if (event.type === "text") {
+            assistantText += event.content;
+            assistantEl.textContent = "Assistant: " + assistantText;
+          } else if (event.type === "error") {
+            assistantEl.textContent = "Assistant (error): " + event.message;
+          }
+        }
+      }
+      history.push({ role: "assistant", content: assistantText });
+    });
+  </script>
+{% endblock %}

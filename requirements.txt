@@ -1,0 +1,10 @@
+Django>=5.2,<5.3
+dj-database-url>=2.3
+django-globus-portal-framework>=0.4
+social-auth-app-django>=5.4
+openai>=1.40
+gunicorn>=23.0
+psycopg2-binary>=2.9
+python-dotenv>=1.0
+whitenoise>=6.7
+requests>=2.32

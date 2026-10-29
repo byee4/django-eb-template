@@ -1,0 +1,13 @@
+.git
+.github
+.venv
+.deploy-venv
+__pycache__
+*.pyc
+.env
+db.sqlite3
+staticfiles
+docker-compose.yml
+README.md
+docs
+.beads

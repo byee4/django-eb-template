@@ -1,0 +1,4 @@
+# Beads (bd) configuration — optional. Initialise with `bd init` after cloning.
+# CLI and docs: https://github.com/steveyegge/beads  (run `bd --help` for your version's options)
+
+# issue-prefix: ""   # auto-detected from directory name

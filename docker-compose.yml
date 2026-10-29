@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${RDS_MASTER_USERNAME:-djangoapp}
+      POSTGRES_PASSWORD: ${RDS_MASTER_PASSWORD:-devpassword}
+      POSTGRES_DB: ${RDS_DB_NAME:-django_template}
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  web:
+    build: .
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --reload"
+    environment:
+      DATABASE_URL: postgres://${RDS_MASTER_USERNAME:-djangoapp}:${RDS_MASTER_PASSWORD:-devpassword}@db:5432/${RDS_DB_NAME:-django_template}
+      DJANGO_DEBUG: "True"
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-key-change-me}
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,web
+      GLOBUS_CLIENT_ID: ${GLOBUS_CLIENT_ID:-}
+      GLOBUS_CLIENT_SECRET: ${GLOBUS_CLIENT_SECRET:-}
+      SOCIAL_AUTH_GLOBUS_REDIRECT_URI: ${SOCIAL_AUTH_GLOBUS_REDIRECT_URI:-http://localhost:8000/complete/globus/}
+      GLOBUS_ALLOWED_IDENTITIES: ${GLOBUS_ALLOWED_IDENTITIES:-}
+      GLOBUS_ALLOWED_GROUP: ${GLOBUS_ALLOWED_GROUP:-}
+      NRP_API_KEY: ${NRP_API_KEY:-}
+      NRP_GATEWAY_BASE_URL: ${NRP_GATEWAY_BASE_URL:-https://llm.nrp-nautilus.io/}
+      NRP_DEFAULT_MODEL: ${NRP_DEFAULT_MODEL:-meta-llama/Meta-Llama-3.1-70B-Instruct}
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    volumes:
+      - .:/app
+
+volumes:
+  db_data:

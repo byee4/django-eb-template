@@ -1,0 +1,72 @@
+# Machine-enforced agent policy, read by .agent/hooks/pre_tool_guard.py for every agent
+# (Claude Code, Codex, or a wrapper). deny = blocked; ask = a human approves.
+# Text rules in AGENTS.md are advice; these are enforcement. Tune with scripts/agent_audit_report.py.
+version: 1
+enforcement:
+  deny_write_paths:
+  - .env
+  - .env.[!e]*
+  - .git/**
+  - '**/*credentials*'
+  - '**/*.pem'
+  - ~/.aws/**
+  - ~/.ssh/**
+  - logs/agent/**
+  ask_write_paths:
+  - AGENTS.md
+  - CLAUDE.md
+  - .agent/**
+  - .agents/**
+  - .claude/**
+  - .codex/**
+  - .github/**
+  - .pre-commit-config.yaml
+  - .mcp.json
+  - config/settings.py
+  - accounts/permissions.py
+  - accounts/middleware.py
+  - .env.example
+  - .ebextensions/**
+  - .elasticbeanstalk/**
+  - .platform/**
+  - Dockerrun.aws.json
+  - Dockerfile
+  - docker-compose.yml
+  - scripts/deploy.sh
+  - scripts/one_time_setup.sh
+  - requirements.txt
+  deny_read_paths:
+  - .env
+  - .env.[!e]*
+  - ~/.aws/credentials
+  - ~/.ssh/**
+  - '**/*.pem'
+  deny_commands:
+  - \bgit\s+push\b.*(\s-f\b|--force)
+  - \bgit\s+push\b.*\b(main|master)\b
+  - \bgit\s+push\s+\S+\s+HEAD:(main|master)\b
+  - \bgit\s+reset\s+--hard\s+origin
+  - \bgit\s+commit\b.*--no-verify
+  - \bcurl\b[^|]*\|\s*(ba|z)?sh\b
+  - \bchmod\s+-R\s+777\b
+  - \bgit\s+config\b.*core\.hooksPath
+  - \beb\s+terminate\b
+  - \baws\s+rds\s+delete
+  - \baws\s+elasticbeanstalk\s+terminate
+  - \baws\s+ecr\s+(batch-delete-image|delete-repository)
+  - \bmanage\.py\s+flush\b
+  ask_commands:
+  - \bgit\s+push\b
+  - \bpip3?\s+install\b
+  - \buv\s+(add|pip\s+install)\b
+  - \bconda\s+install\b
+  - \bmamba\s+install\b
+  - \bnpm\s+(i|install)\b
+  - \bgh\s+pr\s+merge\b
+  - \bgit\s+rebase\b
+  - \brm\s+-[a-zA-Z]*r
+  - scripts/(deploy|one_time_setup)\.sh
+  - \beb\s+(deploy|setenv|create|scale|swap)
+  - \baws\s+
+  - \bdocker\s+push\b
+  - \bgh\s+(repo|secret|release)\b

@@ -1,0 +1,9 @@
+# Agent control plane and CI need a human owner's review on every PR.
+/AGENTS.md                 @brian-yee
+/CLAUDE.md                 @brian-yee
+/.agent/                   @brian-yee
+/.agents/                  @brian-yee
+/.claude/                  @brian-yee
+/.codex/                   @brian-yee
+/.github/                  @brian-yee
+/.pre-commit-config.yaml   @brian-yee

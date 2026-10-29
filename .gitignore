@@ -1,0 +1,38 @@
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.deploy-venv/
+.pytest_cache/
+.ruff_cache/
+
+# Django
+*.sqlite3
+db.sqlite3
+staticfiles/
+media/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Beads runtime
+.beads/*.db
+.beads/issues.jsonl
+.beads/events.jsonl
+
+# EB
+.elasticbeanstalk/*.cfg.yml
+.elasticbeanstalk/logs/
+
+# Agent audit log (local) and kit-install backups
+logs/agent/*.jsonl
+*.bak-*
