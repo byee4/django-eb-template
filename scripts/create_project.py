@@ -103,6 +103,18 @@ def rename(target: Path, slug: str, name: str) -> None:
             path.write_text(new, encoding="utf-8")
 
 
+def strip_template_only(target: Path) -> None:
+    """Drop README sections that only make sense in the template (e.g. how to run this script)."""
+    readme = target / "README.md"
+    text = re.sub(
+        r"<!-- template-only:start -->.*?<!-- template-only:end -->\n?",
+        "",
+        readme.read_text(encoding="utf-8"),
+        flags=re.S,
+    )
+    readme.write_text(text, encoding="utf-8")
+
+
 def write_env(target: Path) -> None:
     text = (target / ".env.example").read_text(encoding="utf-8")
     (target / ".env").write_text(
@@ -157,6 +169,7 @@ def main(argv: list[str] | None = None) -> int:
 
     copy_template(target)
     rename(target, args.slug, args.name)
+    strip_template_only(target)
     write_env(target)
     run(["bash", "scripts/install_agent_kit.sh"], target, stdout=subprocess.DEVNULL)
     run(["git", "init", "-q", "-b", "main"], target)

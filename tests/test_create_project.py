@@ -57,6 +57,13 @@ def test_template_names_are_replaced(project):
     assert leftovers.returncode == 1, leftovers.stdout  # 1 = no matches
 
 
+def test_template_only_readme_section_is_removed(project):
+    readme = (project / "README.md").read_text()
+    assert readme.startswith("# lab-portal")
+    assert "create_project.py" not in readme
+    assert "template-only" not in readme
+
+
 def test_env_has_a_real_secret_and_is_not_committed(project):
     env = (project / ".env").read_text()
     assert "REPLACE_ME_GENERATE_LOCAL_KEY" not in env
