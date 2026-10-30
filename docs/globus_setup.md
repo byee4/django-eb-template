@@ -20,11 +20,9 @@ environment variables.
 5. **Redirect URIs**: add one per environment.
    - Local: `http://localhost:8000/complete/globus/`
    - Docker: `http://localhost:8000/complete/globus/` (same as local)
-   - EB test env: `https://<EB_TEST_CNAME>/complete/globus/`
-   - EB prod env: `https://<EB_PROD_CNAME>/complete/globus/`
-
-   You can re-run `scripts/one_time_setup.sh` after EB creates the CNAMEs to
-   discover them, then add the URIs to the Globus app.
+   - Test and prod: the URI `scripts/one_time_setup.sh <env>` prints at the end, e.g.
+     `https://dXXXX.cloudfront.net/complete/globus/` (or `https://<custom-domain>/complete/globus/`).
+     Globus needs HTTPS here; the bare EB address has no certificate.
 6. Copy the **Client UUID** and **Client Secret** into `.env`:
    ```
    GLOBUS_CLIENT_ID=<uuid>
@@ -50,14 +48,10 @@ Two options:
 
 - **Group invite (recommended)**: invite their Globus identity to the group
   `f0c3d900-18af-11f1-8e43-0affecd7d007`. No code change needed.
-- **Identity allowlist**: add their identity UUID to `GLOBUS_ALLOWED_IDENTITIES`
-  in `.env` (local) or via:
-  ```
-  aws elasticbeanstalk update-environment \
-    --application-name "$EB_APP_NAME" \
-    --environment-name "$EB_ENV_PROD" \
-    --option-settings "Namespace=aws:elasticbeanstalk:application:environment,OptionName=GLOBUS_ALLOWED_IDENTITIES,Value=<comma-sep-uuids>"
-  ```
+- **Identity allowlist**: add their identity UUID to `GLOBUS_ALLOWED_IDENTITIES` in `.env`,
+  then rerun `scripts/one_time_setup.sh <env>` and accept only the final "push environment
+  variables" step. (Avoid `aws ... --option-settings Namespace=...,Value=a,b` shorthand: the
+  commas in a UUID list split the value.)
 
 ## Common failures
 

@@ -14,25 +14,30 @@ Where things live in this project. Keep this current as the code changes.
 | `templates/base.html` | Shared layout (nav, content block) |
 | `static/css/base.css` | Minimal styles |
 | `scripts/` | Setup + deploy automation |
-| `requirements.txt` | Runtime deps |
-| `requirements-dev.txt` | Adds ruff + pytest |
-| `pyproject.toml` | Ruff and pytest config |
+| `pyproject.toml`, `uv.lock` | Dependencies (uv) and ruff/pytest/mypy config |
+| `requirements.txt` | Runtime deps exported from `uv.lock` for the Docker image (`make lock`) |
+| `Makefile` | `setup`, `run`, `verify`, `lock`, `deploy-test`/`deploy-prod` |
 | `.env.example` | All env vars with docstrings |
 | `AGENTS.md`, `CLAUDE.md` | Agent instructions (CLAUDE.md imports AGENTS.md) |
 | `.agents/skills/` | Agent runbooks (`ship-change`, `deploy`); mirrored to `.claude/skills/` |
 | `.agent/` | Agent control plane: hooks, `policy.yaml`, `done.sh`, `install/` |
-| `tests/test_agent_kit.py` | Verifies the agent control plane is wired and enforcing |
+| `tests/` | Agent-kit self-test, production settings checks, generator test |
+| `.mcp.json` | Declares the codebase-memory MCP server (opt-in per project) |
 
 ## Django config (`config/`)
 
-- `settings.py` — env-driven config; `DEBUG` defaults True for local, False on EB.
+- `settings.py` — env-driven config; `DEBUG` defaults True for local, False on EB. With
+  `DEBUG=False` it refuses to start on the development secret key or wildcard hosts.
+  `SECURE_PROXY_SSL_HEADER_NAME` switches HTTPS detection to CloudFront's header.
 - `urls.py` — wires `social_django`, `chat`, `main`; provides `logout/` that also ends the Globus web session.
 - `wsgi.py`/`asgi.py` — standard.
 
 ## `main/` (hello world)
 
 - `views.home` → renders `main/index.html` (public)
-- `views.healthz` → `/healthz/` JSON 200 for EB ALB health checks
+- `views.healthz` → `/healthz/` JSON 200 (runs `SELECT 1`) for EB health checks
+- `middleware.HealthCheckMiddleware` → answers `/healthz/` before Host validation (load balancers
+  send the instance IP as Host)
 - `tests.py` — smoke tests for both
 
 ## `chat/`
@@ -49,6 +54,8 @@ Where things live in this project. Keep this current as the code changes.
   logins not on `GLOBUS_ALLOWED_IDENTITIES` or in `GLOBUS_ALLOWED_GROUP`.
   Every accept/reject is logged.
 - `middleware.AuditLogMiddleware` — logs every authenticated POST/PUT/PATCH/DELETE.
+- `middleware.GlobusOAuthRecoveryMiddleware` — turns lost OAuth state and Globus 5xx on the
+  callback into a clean retry instead of a 500.
 
 ## Deployment
 
@@ -56,13 +63,16 @@ Where things live in this project. Keep this current as the code changes.
 - `docker-compose.yml` — local dev with Postgres.
 - `Dockerrun.aws.json` — EB single-container manifest. Image tag is rewritten by `scripts/deploy.sh`.
 - `.ebextensions/01_docker_health.config` — `/healthz/` health check.
-- `.elasticbeanstalk/config.yml` — application name + two-env default mapping.
+- `.elasticbeanstalk/config.yml` — application name for `eb create` (rewritten by `one_time_setup.sh`).
+- `.dockerignore` — keeps `.env` and local state out of the image.
 - `.platform/hooks/postdeploy/01_migrate.sh` — runs `migrate` on each deploy.
 
 ## Scripts
 
-- `scripts/bootstrap_local.sh` — `.venv` + migrate + runserver
+- `scripts/create_project.py` — template only: creates a renamed, committed project (not copied into projects)
+- `scripts/bootstrap_local.sh` — `uv sync` + migrate + runserver
 - `scripts/bootstrap_docker.sh` — `docker compose up`
-- `scripts/one_time_setup.sh` — GH repo, ECR, RDS, EB app, two EB envs, env vars (with confirmation prompts)
-- `scripts/deploy.sh test|prod` — build + push image, migrate, package bundle, deploy
+- `scripts/lib/aws_env.sh` — picks test/prod and derives that environment's AWS names
+- `scripts/one_time_setup.sh test|prod` — ECR, RDS, EB app + env, HTTPS (CloudFront or ACM), env vars (with prompts)
+- `scripts/deploy.sh test|prod` — build + push exact image tag, migrate, package bundle, deploy
 - `scripts/install_agent_kit.sh` — puts `.agent/install/` (Claude/Codex config, CI, Dependabot, pre-commit) in place

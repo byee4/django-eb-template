@@ -1,3 +1,34 @@
+[project]
+name = "django-template"
+version = "0.1.0"
+description = "Django starter with Globus login, NRP chat, and Elastic Beanstalk test/prod deploys."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "Django>=5.2,<5.3",
+    "dj-database-url>=2.3",
+    "django-globus-portal-framework>=0.4",
+    "social-auth-app-django>=5.4",
+    "openai>=1.40",
+    "gunicorn>=23.0",
+    "psycopg2-binary>=2.9",
+    "python-dotenv>=1.0",
+    "whitenoise>=6.7",
+    "requests>=2.32",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.15",
+    "pytest>=8.2",
+    "pytest-django>=4.8",
+    "pyyaml>=6",
+    "ruff>=0.6",
+]
+
+[tool.uv]
+package = false
+
 [tool.ruff]
 line-length = 100
 target-version = "py312"
@@ -11,3 +42,9 @@ ignore = ["E501"]
 DJANGO_SETTINGS_MODULE = "config.settings"
 python_files = ["tests.py", "test_*.py"]
 addopts = "-ra"
+
+[tool.mypy]
+python_version = "3.12"
+check_untyped_defs = true
+ignore_missing_imports = true
+exclude = ["^\\.venv/", "^\\.deploy-venv/", "/migrations/"]

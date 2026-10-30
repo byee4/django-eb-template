@@ -4,7 +4,7 @@ branch-defaults:
   test:
     environment: django-template-test
 global:
-  application_name: django-template-app
+  application_name: django-template
   default_ec2_keyname: null
   default_platform: Docker running on 64bit Amazon Linux 2023
   default_region: us-west-2

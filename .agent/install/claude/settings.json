@@ -7,13 +7,20 @@
       "Bash(.venv/bin/pytest:*)",
       "Bash(python manage.py check)",
       "Bash(python manage.py test:*)",
-      "Bash(bash .agent/done.sh)"
+      "Bash(bash .agent/done.sh)",
+      "Bash(make verify)",
+      "Bash(make test)",
+      "Bash(uv run pytest:*)",
+      "Bash(uv run ruff:*)",
+      "Bash(uv run mypy:*)"
     ],
     "ask": [
       "Bash(git push:*)",
       "Bash(gh pr merge:*)",
       "Bash(scripts/deploy.sh:*)",
       "Bash(scripts/one_time_setup.sh:*)",
+      "Bash(make deploy-test)",
+      "Bash(make deploy-prod)",
       "Bash(eb:*)",
       "Bash(aws:*)",
       "Bash(docker push:*)"

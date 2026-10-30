@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -27,12 +28,17 @@ def env_list(name: str, default: str = "") -> list[str]:
     return [item.strip() for item in os.environ.get(name, default).split(",") if item.strip()]
 
 
-SECRET_KEY = os.environ.get(
-    "DJANGO_SECRET_KEY",
-    "django-insecure-local-template-key-change-me",
-)
+INSECURE_DEFAULT_KEY = "django-insecure-local-template-key-change-me"
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", INSECURE_DEFAULT_KEY)
 DEBUG = env_bool("DJANGO_DEBUG", True)
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
+
+# Production fails closed: refuse to start with a development secret or wildcard hosts.
+if not DEBUG:
+    if SECRET_KEY in {INSECURE_DEFAULT_KEY, "REPLACE_ME_GENERATE_LOCAL_KEY"}:
+        raise ImproperlyConfigured("DJANGO_SECRET_KEY must be set when DJANGO_DEBUG=False.")
+    if "*" in ALLOWED_HOSTS:
+        raise ImproperlyConfigured("DJANGO_ALLOWED_HOSTS must not include '*' when DJANGO_DEBUG=False.")
 
 INSTALLED_APPS = [
     "django.contrib.auth",
@@ -48,6 +54,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "main.middleware.HealthCheckMiddleware",  # first: load balancers send an IP as the Host
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -55,9 +62,11 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "social_django.middleware.SocialAuthExceptionMiddleware",
     "globus_portal_framework.middleware.ExpiredTokenMiddleware",
     "globus_portal_framework.middleware.GlobusAuthExceptionMiddleware",
+    "accounts.middleware.GlobusOAuthRecoveryMiddleware",
     "accounts.middleware.AuditLogMiddleware",
 ]
 
@@ -91,7 +100,7 @@ else:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
+            "NAME": str(BASE_DIR / "db.sqlite3"),
         }
     }
 
@@ -115,7 +124,10 @@ _STATIC_BACKEND = (
     if DEBUG
     else "whitenoise.storage.CompressedManifestStaticFilesStorage"
 )
-STORAGES = {"staticfiles": {"BACKEND": _STATIC_BACKEND}}
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": _STATIC_BACKEND},
+}
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # --- Globus auth ------------------------------------------------------------
@@ -168,7 +180,13 @@ LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
 
 CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS")
-SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+# Behind CloudFront (the default HTTPS front door when there is no custom domain) the origin sees
+# plain HTTP, so X-Forwarded-Proto says "http". one_time_setup.sh then sets
+# SECURE_PROXY_SSL_HEADER_NAME=HTTP_CLOUDFRONT_FORWARDED_PROTO so Django trusts CloudFront instead.
+SECURE_PROXY_SSL_HEADER = (
+    os.environ.get("SECURE_PROXY_SSL_HEADER_NAME", "HTTP_X_FORWARDED_PROTO"),
+    "https",
+)
 USE_X_FORWARDED_PORT = True
 SESSION_COOKIE_SAMESITE = os.environ.get("SESSION_COOKIE_SAMESITE", "Lax")
 CSRF_COOKIE_SAMESITE = os.environ.get("CSRF_COOKIE_SAMESITE", "Lax")

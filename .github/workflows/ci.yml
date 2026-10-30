@@ -5,28 +5,46 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          python-version: "3.12"
-          cache: pip
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements-dev.txt
-      - name: Ruff
-        run: ruff check .
-      - name: Django checks
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - name: Install locked dependencies
+        run: uv sync --locked --all-groups
+      - name: Definition of done (ruff, mypy, check, migrations, pytest, agent-kit self-test)
         env:
           DJANGO_SECRET_KEY: ci-test-key
           DJANGO_DEBUG: "True"
-        run: python manage.py check
-      - name: Pytest
+        run: bash .agent/done.sh
+
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - run: uvx pre-commit run --all-files --show-diff-on-failure
+
+  workflow-security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - name: zizmor (GitHub Actions static analysis)
         env:
-          DJANGO_SECRET_KEY: ci-test-key
-          DJANGO_DEBUG: "True"
-        run: pytest
+          GH_TOKEN: ${{ github.token }}
+        run: uvx zizmor --min-severity medium .github/workflows

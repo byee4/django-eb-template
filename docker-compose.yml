@@ -3,8 +3,8 @@ services:
     image: postgres:16
     environment:
       POSTGRES_USER: ${RDS_MASTER_USERNAME:-djangoapp}
-      POSTGRES_PASSWORD: ${RDS_MASTER_PASSWORD:-devpassword}
-      POSTGRES_DB: ${RDS_DB_NAME:-django_template}
+      POSTGRES_PASSWORD: ${LOCAL_DB_PASSWORD:-devpassword}
+      POSTGRES_DB: django_template
     ports:
       - "5432:5432"
     volumes:
@@ -16,7 +16,7 @@ services:
       sh -c "python manage.py migrate --noinput &&
              gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --reload"
     environment:
-      DATABASE_URL: postgres://${RDS_MASTER_USERNAME:-djangoapp}:${RDS_MASTER_PASSWORD:-devpassword}@db:5432/${RDS_DB_NAME:-django_template}
+      DATABASE_URL: postgres://${RDS_MASTER_USERNAME:-djangoapp}:${LOCAL_DB_PASSWORD:-devpassword}@db:5432/django_template
       DJANGO_DEBUG: "True"
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-key-change-me}
       DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,web

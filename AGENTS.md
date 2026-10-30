@@ -10,13 +10,16 @@ config/       Django project (settings, urls, wsgi)
 main/         Hello-world app — public landing page + /healthz/
 chat/         NRP Nautilus LLM streaming chat (login required)
 accounts/     Globus auth glue: identity/group allowlist + audit middleware
-scripts/      one_time_setup.sh, deploy.sh, bootstrap_{local,docker}.sh, install_agent_kit.sh
+scripts/      one_time_setup.sh / deploy.sh {test|prod}, lib/aws_env.sh, bootstrap_*.sh, install_agent_kit.sh
 .ebextensions/ .elasticbeanstalk/ .platform/   Elastic Beanstalk Docker deployment
 docs/         codemap.md, globus_setup.md, deployment.md, specs/
 .agents/skills/  ship-change, deploy (canonical; mirrored to .claude/skills)
 .agent/       hooks, policy.yaml, done.sh — the agent control plane
 .beads/       Optional issue tracking (bd CLI) — see .beads/README.md
 ```
+
+Tooling: uv (`make setup`, `make run`, `make verify`). Dependencies live in `pyproject.toml` +
+`uv.lock`; after changing them run `make lock` (it also exports `requirements.txt` for Docker).
 
 ## Before every change
 1. Read `docs/codemap.md` and relevant `docs/specs/*.md`. Don't guess at structure.
@@ -34,8 +37,8 @@ docs/         codemap.md, globus_setup.md, deployment.md, specs/
   prompt/response bodies; never retry NRP 503s server-side.
 
 ## Definition of done
-`bash .agent/done.sh` passes (ruff, `manage.py check`, no missing migrations, pytest, agent-kit
-self-test) and the change has a regression test. User-visible changes: smoke test with
+`make verify` (= `bash .agent/done.sh`) passes (ruff, mypy, `manage.py check`, no missing migrations,
+pytest, agent-kit self-test) and the change has a regression test. User-visible changes: smoke test with
 `scripts/bootstrap_local.sh`. Deployment changes: dry-run and note the diff in the PR.
 Update `docs/codemap.md` when a module or public surface changes.
 
@@ -49,7 +52,8 @@ Deploys follow the `deploy` skill: the agent prepares and verifies; a human runs
 records EB env, version label, and git SHA in the PR.
 
 ## Failure modes to know about
-- **Globus callback URL drift** when the EB CNAME changes — update the app's redirect URI (`docs/globus_setup.md`).
+- **Globus callback URL drift** when the public address changes — register the URI `one_time_setup.sh` prints.
+- **Test and prod are separate stacks** (own RDS + ECR each); never point a script at prod to "try something".
 - **`docker-compose.yml` in the EB bundle** switches EB to Compose mode — `.ebignore` excludes it.
 - **Allowlist lock-out** if `GLOBUS_ALLOWED_IDENTITIES` drops your own identity — test locally first.
 - **NRP gateway 503** — chat shows a friendly error; users retry.

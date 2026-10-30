@@ -1,39 +1,20 @@
 #!/usr/bin/env bash
 # One-click deploy. Usage: scripts/deploy.sh {test|prod}
 #
-# Builds/pushes image to ECR, runs migrations against the target RDS,
-# packages Dockerrun.aws.json + .ebextensions, uploads as an EB application version.
+# Builds/pushes an exactly tagged image to the environment's own ECR repository, runs migrations
+# against the environment's own RDS, packages Dockerrun.aws.json + .ebextensions + .platform, and
+# uploads them as an EB application version. Run scripts/one_time_setup.sh <env> once first.
 
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-TARGET="${1:-}"
-if [[ "$TARGET" != "test" && "$TARGET" != "prod" ]]; then
-  echo "Usage: $0 {test|prod}" >&2
-  exit 2
-fi
+# shellcheck source=scripts/lib/aws_env.sh
+source scripts/lib/aws_env.sh "${1:-}"
 
-if [[ ! -f .env ]]; then
-  echo "ERROR: .env not found. Run scripts/one_time_setup.sh first." >&2
-  exit 2
-fi
-set -a
-# shellcheck disable=SC1091
-source .env
-set +a
-
-for cmd in aws docker zip unzip python3 curl; do
-  command -v "$cmd" >/dev/null 2>&1 || { echo "Missing required command: $cmd" >&2; exit 2; }
-done
+for cmd in aws docker zip unzip python3 curl; do require_cmd "$cmd"; done
 docker info >/dev/null 2>&1 || { echo "Docker daemon not reachable. Start Docker Desktop." >&2; exit 2; }
-
-: "${AWS_REGION:=us-west-2}"
-: "${EB_APP_NAME:=django-template-app}"
-EB_ENV="$(if [[ "$TARGET" == "test" ]]; then echo "${EB_ENV_TEST:-django-template-test}"; else echo "${EB_ENV_PROD:-django-template-prod}"; fi)"
-: "${ECR_REPO_NAME:=$EB_APP_NAME}"
-: "${RDS_INSTANCE_ID:=django-template-db}"
 
 ECR_URI="$(aws ecr describe-repositories --repository-names "$ECR_REPO_NAME" --region "$AWS_REGION" --query 'repositories[0].repositoryUri' --output text)"
 IMAGE_TAG="${IMAGE_TAG:-$(date +%Y%m%d-%H%M%S)}"
@@ -52,13 +33,8 @@ docker build --platform linux/amd64 -t "$ECR_URI:$IMAGE_TAG" .
 docker push "$ECR_URI:$IMAGE_TAG"
 
 echo "[3/5] Run migrations against $EB_ENV's RDS"
-DATABASE_URL="$(aws elasticbeanstalk describe-configuration-settings \
-  --region "$AWS_REGION" \
-  --application-name "$EB_APP_NAME" \
-  --environment-name "$EB_ENV" \
-  --query "ConfigurationSettings[0].OptionSettings[?Namespace=='aws:elasticbeanstalk:application:environment' && OptionName=='DATABASE_URL'].Value | [0]" \
-  --output text)"
-if [[ "$DATABASE_URL" == "None" || -z "$DATABASE_URL" ]]; then
+DATABASE_URL="$(eb_env_var DATABASE_URL)"
+if [[ -z "$DATABASE_URL" ]]; then
   echo "ERROR: DATABASE_URL not set on $EB_ENV." >&2
   exit 2
 fi
@@ -91,7 +67,7 @@ cat > "$PACKAGE_DIR/Dockerrun.aws.json" <<JSON
   "AWSEBDockerrunVersion": "1",
   "Image": { "Name": "$ECR_URI:$IMAGE_TAG", "Update": "true" },
   "Ports": [ { "ContainerPort": 8000, "HostPort": 80 } ],
-  "Logging": "/var/log/django-template"
+  "Logging": "/var/log/$PROJECT_SLUG"
 }
 JSON
 cp -R .ebextensions "$PACKAGE_DIR/.ebextensions"
@@ -120,4 +96,6 @@ aws elasticbeanstalk wait environment-updated \
   --environment-names "$EB_ENV"
 
 rm -rf "$PACKAGE_DIR" "$PACKAGE_PATH"
-echo "Deploy complete: $EB_ENV @ $VERSION_LABEL"
+PUBLIC_HOST="$(eb_env_var DJANGO_ALLOWED_HOSTS)"
+echo "Deploy complete: $EB_ENV @ $VERSION_LABEL (git $(git rev-parse --short HEAD 2>/dev/null || echo unknown))"
+echo "Smoke test: https://${PUBLIC_HOST%%,*}/healthz/"
