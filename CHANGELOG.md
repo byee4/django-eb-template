@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-17 — no built-in Globus allowlist
+
+The Globus identity and group IDs that shipped as defaults in `config/settings.py` and
+`.env.example` are removed. A new project now lets nobody log in until its owner sets
+`GLOBUS_ALLOWED_IDENTITIES` or `GLOBUS_ALLOWED_GROUP`. Projects already made from the template
+are unaffected: they keep their own `.env` and EB environment variables.
+
 ## 2026-10-29 — merged django-eb-template
 
 The earlier `django-eb-template` (formerly `01_active/django-eb-template`, now archived) was merged
