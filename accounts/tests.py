@@ -42,10 +42,12 @@ def test_allowlist_rejects_non_member(settings):
         enforce_globus_allowlist(_strategy(), {}, response)
 
 
-def test_default_seed_identity_is_allowed(settings):
-    settings.GLOBUS_ALLOWED_IDENTITIES = ["0ab2be39-35fe-432b-a620-2ed86db7999d"]
-    settings.GLOBUS_ALLOWED_GROUP = "f0c3d900-18af-11f1-8e43-0affecd7d007"
-    assert enforce_globus_allowlist(_strategy(), {}, {"sub": "0ab2be39-35fe-432b-a620-2ed86db7999d"}) is None
+def test_empty_allowlist_rejects_everyone(settings):
+    settings.GLOBUS_ALLOWED_IDENTITIES = []
+    settings.GLOBUS_ALLOWED_GROUP = ""
+    response = {"sub": "user-uuid", "identity_set": [{"identity_id": "any-group"}]}
+    with pytest.raises(AuthForbidden):
+        enforce_globus_allowlist(_strategy(), {}, response)
 
 
 # --- Globus OAuth recovery middleware ------------------------------------------------------

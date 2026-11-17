@@ -1,14 +1,15 @@
 # Globus auth setup
 
 This template uses Globus OAuth via `django-globus-portal-framework` +
-`social-auth-app-django`. Initial access is restricted to:
+`social-auth-app-django`. Access is restricted to:
 
-- Identity UUID `0ab2be39-35fe-432b-a620-2ed86db7999d`
-- Members of Globus group `f0c3d900-18af-11f1-8e43-0affecd7d007`
+- Identity UUIDs in `GLOBUS_ALLOWED_IDENTITIES` (find yours at
+  https://app.globus.org/account/identities)
+- Members of the Globus group in `GLOBUS_ALLOWED_GROUP`
 
-These defaults live in `.env.example` (`GLOBUS_ALLOWED_IDENTITIES`,
-`GLOBUS_ALLOWED_GROUP`). Override per-environment by editing `.env` or the EB
-environment variables.
+Both are empty by default, which means nobody can log in. Set at least your own
+identity in `.env` before the first login, and in the EB environment variables
+for test and prod.
 
 ## Register the Globus application
 
@@ -46,8 +47,8 @@ or EB logs for `globus_login_allowed` / `globus_login_denied` lines.
 
 Two options:
 
-- **Group invite (recommended)**: invite their Globus identity to the group
-  `f0c3d900-18af-11f1-8e43-0affecd7d007`. No code change needed.
+- **Group invite (recommended)**: invite their Globus identity to the group in
+  `GLOBUS_ALLOWED_GROUP`. No code change needed.
 - **Identity allowlist**: add their identity UUID to `GLOBUS_ALLOWED_IDENTITIES` in `.env`,
   then rerun `scripts/one_time_setup.sh <env>` and accept only the final "push environment
   variables" step. (Avoid `aws ... --option-settings Namespace=...,Value=a,b` shorthand: the

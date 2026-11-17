@@ -150,14 +150,9 @@ SOCIAL_AUTH_GLOBUS_SESSIONS = True
 SOCIAL_AUTH_REDIRECT_IS_HTTPS = env_bool("SOCIAL_AUTH_REDIRECT_IS_HTTPS", not DEBUG)
 SOCIAL_AUTH_GLOBUS_REDIRECT_URI = os.environ.get("SOCIAL_AUTH_GLOBUS_REDIRECT_URI", "").strip()
 
-GLOBUS_ALLOWED_IDENTITIES = env_list(
-    "GLOBUS_ALLOWED_IDENTITIES",
-    "0ab2be39-35fe-432b-a620-2ed86db7999d",
-)
-GLOBUS_ALLOWED_GROUP = os.environ.get(
-    "GLOBUS_ALLOWED_GROUP",
-    "f0c3d900-18af-11f1-8e43-0affecd7d007",
-).strip()
+# No built-in defaults: with both empty, nobody can log in until the owner sets them.
+GLOBUS_ALLOWED_IDENTITIES = env_list("GLOBUS_ALLOWED_IDENTITIES")
+GLOBUS_ALLOWED_GROUP = os.environ.get("GLOBUS_ALLOWED_GROUP", "").strip()
 SOCIAL_AUTH_GLOBUS_ALLOWED_GROUPS = (
     [{"name": "App Members", "uuid": GLOBUS_ALLOWED_GROUP}] if GLOBUS_ALLOWED_GROUP else []
 )

@@ -50,6 +50,19 @@ def test_production_starts_with_real_settings():
     assert result.returncode == 0, result.stderr
 
 
+def test_globus_allowlist_has_no_built_in_ids():
+    """A public template must not let the template author into every project made from it."""
+    clean = {k: v for k, v in os.environ.items() if not k.startswith("GLOBUS_ALLOWED")}
+    code = (
+        "import dotenv; dotenv.load_dotenv = lambda *a, **k: None\n"  # ignore a project's .env
+        "import config.settings as s; print(s.GLOBUS_ALLOWED_IDENTITIES, repr(s.GLOBUS_ALLOWED_GROUP))"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", code], cwd=ROOT, env=clean, capture_output=True, text=True, check=True
+    )
+    assert result.stdout.strip() == "[] ''"
+
+
 def test_cloudfront_proto_header_marks_request_secure(rf, settings):
     settings.SECURE_PROXY_SSL_HEADER = ("HTTP_CLOUDFRONT_FORWARDED_PROTO", "https")
     request = rf.get("/", HTTP_CLOUDFRONT_FORWARDED_PROTO="https", HTTP_X_FORWARDED_PROTO="http")

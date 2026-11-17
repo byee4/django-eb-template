@@ -65,8 +65,8 @@ documents every variable.
 | `DATABASE_URL` | Docker/EB | Blank for local SQLite; setup sets it per environment |
 | `GLOBUS_CLIENT_ID` / `GLOBUS_CLIENT_SECRET` | Login | https://app.globus.org/settings/developers → register a Portal app |
 | `SOCIAL_AUTH_GLOBUS_REDIRECT_URI` | Login | `http://localhost:8000/complete/globus/` locally; setup sets it on EB |
-| `GLOBUS_ALLOWED_IDENTITIES` | Access | Comma-separated identity UUIDs. Default: `0ab2be39-35fe-432b-a620-2ed86db7999d` |
-| `GLOBUS_ALLOWED_GROUP` | Access | Group UUID. Default: `f0c3d900-18af-11f1-8e43-0affecd7d007` |
+| `GLOBUS_ALLOWED_IDENTITIES` | Access | Comma-separated identity UUIDs; yours is at https://app.globus.org/account/identities. Empty by default: nobody can log in until you set this or the group |
+| `GLOBUS_ALLOWED_GROUP` | Access | Group UUID from https://app.globus.org/groups; any member may log in. Empty by default |
 | `NRP_API_KEY` | Chat | https://nrp.ai — request access; copy your token |
 | `NRP_GATEWAY_BASE_URL`, `NRP_DEFAULT_MODEL` | Chat | Defaults work |
 | `PROJECT_SLUG`, `AWS_REGION`, `EB_APP_NAME`, `EB_ENV_TEST`, `EB_ENV_PROD` | Deploy | Set when the project is created |
